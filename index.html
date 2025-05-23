@@ -27,6 +27,7 @@
     table { width: 100%; border-collapse: collapse; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
     th { background-color: #f2f2f2; }
+    .date-input { margin-top: 10px; display: flex; align-items: center; gap: 10px; }
   </style>
 </head>
 <body>
@@ -40,9 +41,12 @@
     const App = () => {
       const [data, setData] = React.useState(null);
       const [error, setError] = React.useState(null);
+      const [startDate, setStartDate] = React.useState(null);
+      const [defaultStartDate, setDefaultStartDate] = React.useState(null);
+      const [rawData, setRawData] = React.useState(null); // Lagrer rådata for reprocessing
 
       // Behandler og renser data
-      const processAndCleanData = (rawData) => {
+      const processAndCleanData = (rawData, customStartDate = null) => {
         if (!rawData || rawData.length === 0) {
           throw new Error("CSV-filen er tom eller ugyldig.");
         }
@@ -77,36 +81,46 @@
           };
         });
 
-        // Finner konkurranseperioden (første til siste registrerte dag)
+        // Finner konkurranseperioden
         const dates = Object.values(uniqueEntries).map(entry => entry.date);
         const minDate = new Date(Math.min(...dates));
-        const maxDate = new Date(Math.max(...dates));
-        const competitionDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24)) + 1; // Inkluderer begge ender
+        const today = new Date('2025-05-23'); // Dagens dato
+        const endDate = today;
+        const chosenStartDate = customStartDate ? new Date(customStartDate) : minDate;
+        if (chosenStartDate > endDate) {
+          throw new Error("Startdato kan ikke være senere enn dagens dato.");
+        }
+        const competitionDays = Math.ceil((endDate - chosenStartDate) / (1000 * 60 * 60 * 24)) + 1; // Inkluderer begge ender
         const formatDate = (date) => date.toLocaleDateString('no-NO', { day: '2-digit', month: '2-digit', year: 'numeric' });
         const periodInfo = {
-          from: formatDate(minDate),
-          to: formatDate(maxDate),
+          from: formatDate(chosenStartDate),
+          to: formatDate(endDate),
           days: competitionDays
         };
+
+        // Filtrer data innenfor valgt periode
+        const filteredEntries = Object.values(uniqueEntries).filter(entry => 
+          entry.date >= chosenStartDate && entry.date <= endDate
+        );
 
         // Aggregerer skritt per team og teller unike medlemmer
         const teamSteps = {};
         const teamMembers = {};
-        Object.values(uniqueEntries).forEach(row => {
+        filteredEntries.forEach(row => {
           teamSteps[row.team] = (teamSteps[row.team] || 0) + row.steps;
           teamMembers[row.team] = teamMembers[row.team] || new Set();
           teamMembers[row.team].add(row.name);
         });
         const teamData = Object.entries(teamSteps).map(([team, steps]) => ({
           name: team,
-          value: Math.round(steps / (teamMembers[team].size * competitionDays)) // Gjennomsnitt per medlem per dag
+          value: teamMembers[team].size > 0 ? Math.round(steps / (teamMembers[team].size * competitionDays)) : 0 // Gjennomsnitt per medlem per dag
         }));
 
         // Aggregerer skritt per person for topp 5 og total oversikt
         const personSteps = {};
         const personDays = {};
         const personTeams = {};
-        Object.values(uniqueEntries).forEach(row => {
+        filteredEntries.forEach(row => {
           personSteps[row.name] = (personSteps[row.name] || 0) + row.steps;
           personDays[row.name] = personDays[row.name] || new Set();
           personDays[row.name].add(row.date.toISOString().split('T')[0]);
@@ -116,7 +130,7 @@
           .map(([name, steps]) => ({
             name: `${name} (${personTeams[name]})`,
             totalSteps: steps,
-            avgSteps: Math.round(steps / personDays[name].size)
+            avgSteps: personDays[name].size > 0 ? Math.round(steps / personDays[name].size) : 0
           }))
           .sort((a, b) => b.totalSteps - a.totalSteps)
           .slice(0, 5);
@@ -132,7 +146,7 @@
         const topPerson = allPersons[0]?.name || "Ingen data";
         const teams = Object.keys(teamSteps);
 
-        return { teamData, top5Persons, allPersons, topPerson, teams, periodInfo };
+        return { teamData, top5Persons, allPersons, topPerson, teams, periodInfo, defaultStartDate: minDate };
       };
 
       // Håndterer filopplasting
@@ -143,6 +157,7 @@
         if (!file.name.endsWith('.csv')) {
           setError('Vennligst last opp en CSV-fil.');
           setData(null);
+          setRawData(null);
           return;
         }
 
@@ -154,18 +169,38 @@
           complete: (results) => {
             try {
               const cleanedData = processAndCleanData(results.data);
+              setRawData(results.data); // Lagrer rådata
               setData(cleanedData);
+              setDefaultStartDate(cleanedData.defaultStartDate);
+              setStartDate(null); // Nullstiller startdato ved ny opplasting
               setError(null);
             } catch (err) {
               setError(err.message);
               setData(null);
+              setRawData(null);
             }
           },
           error: (err) => {
             setError('Feil ved parsing av CSV: ' + err.message);
             setData(null);
+            setRawData(null);
           }
         });
+      };
+
+      // Håndterer endring av startdato
+      const handleStartDateChange = (event) => {
+        const newDate = event.target.value;
+        if (rawData) {
+          try {
+            const updatedData = processAndCleanData(rawData, newDate || null);
+            setData(updatedData);
+            setStartDate(newDate || null);
+            setError(null);
+          } catch (err) {
+            setError(err.message);
+          }
+        }
       };
 
       // Formaterer store tall for visning
@@ -201,9 +236,20 @@
               onChange={handleFileUpload}
               className="border p-2 rounded"
             />
+            {data && (
+              <div className="date-input">
+                <label className="text-lg">Velg startdato (valgfritt, standard: tidligste dato):</label>
+                <input
+                  type="date"
+                  onChange={handleStartDateChange}
+                  className="border p-2 rounded"
+                  defaultValue={defaultStartDate ? defaultStartDate.toISOString().split('T')[0] : ''}
+                />
+              </div>
+            )}
             <div className="guide">
               <h3 className="text-lg font-semibold mb-2">Guide for å laste ned CSV-fil fra Slack</h3>
-             <ol className="list-decimal list-inside">
+           <ol className="list-decimal list-inside">
                 <li>Åpne <strong>Skrittkonkurranse</strong>-fanen i <strong>#familie</strong> kanalen (denne vises som en tabb øverst).</li>
                 <li>Klikk på <strong>"tre prikker"</strong>-knappen øverst til høyre på siden listen vises.</li>
                 <li>Velg <strong>"Last ned CSV" / "Download CSV"</strong> fra menyen for å laste ned filen.</li>
@@ -220,7 +266,7 @@
             <>
               <p className="mb-4">
                 <strong>Sammendrag:</strong> Denne rapporten analyserer data fra skrittkonkurransen for følgende team: {data.teams.join(", ")}. 
-                Personen med flest skritt er {data.topPerson}. Konkurranseperioden går fra {data.periodInfo.from} til {data.periodInfo.to} ({data.periodInfo.days} dager). 
+                Personen med flest skritt er {data.topPerson}. Beregningsperioden går fra {data.periodInfo.from} til {data.periodInfo.to} ({data.periodInfo.days} dager). 
                 Rapporten viser gjennomsnittlig antall skritt per team per dag over denne perioden, de fem mest aktive personene, og en oversikt over totale skritt per person.
               </p>
 
@@ -303,7 +349,7 @@
               <div>
                 <h2 className="text-xl font-semibold mb-2">Konklusjon</h2>
                 <p>
-                  Rapporten viser gjennomsnittlig skritttall per team per dag over konkurranseperioden ({data.periodInfo.from} til {data.periodInfo.to}, {data.periodInfo.days} dager), de mest aktive personene, og en oversikt over totale skritt per person. 
+                  Rapporten viser gjennomsnittlig skritttall per team per dag over beregningsperioden ({data.periodInfo.from} til {data.periodInfo.to}, {data.periodInfo.days} dager), de mest aktive personene, og en oversikt over totale skritt per person. 
                   {data.topPerson} leder konkurransen med flest skritt. Noen team har høye gjennomsnitt på grunn av svært aktive medlemmer, mens topp 5-personene viser variasjon i både totalt og gjennomsnittlig daglig antall skritt. 
                   Økt deltakelse fra mindre aktive team kan bidra til en jevnere konkurranse.
                 </p>
