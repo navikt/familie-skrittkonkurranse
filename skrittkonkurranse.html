@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skrittkonkurranse Familie</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chrono-node/1.3.11/chrono.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.15.0/Recharts.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .chart-container { margin: 40px 0; }
+    .text-2xl { font-size: 1.5rem; }
+    .text-xl { font-size: 1.25rem; }
+    .download-btn { margin-top: 10px; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    // Initialiserer React og Recharts-komponenter
+    const { createRoot } = ReactDOM;
+    const { PieChart, Pie, Cell, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } = Recharts;
+
+    // Definerer hovedkomponenten App
+    const App = () => {
+      const [data, setData] = React.useState(null);
+      const [error, setError] = React.useState(null);
+
+      // Behandler og renser data
+      const processAndCleanData = (rawData) => {
+        if (!rawData || rawData.length === 0) {
+          throw new Error("CSV-filen er tom eller ugyldig.");
+        }
+
+        const requiredHeaders = ["Navn", "Hvilken team tilhører du?", "Dato for skritttallene", "Hvor mange skritt gikk du?"];
+        const headers = Object.keys(rawData[0]);
+        if (!requiredHeaders.every(header => headers.includes(header))) {
+          throw new Error("CSV-filen mangler nødvendige kolonner: " + requiredHeaders.join(", "));
+        }
+
+        const cleanedData = rawData.filter(row => 
+          row["Navn"] && 
+          row["Hvilken team tilhører du?"] && 
+          row["Dato for skritttallene"] && 
+          row["Hvor mange skritt gikk du?"] && 
+          !isNaN(parseFloat(row["Hvor mange skritt gikk du?"]))
+        );
+
+        if (cleanedData.length === 0) {
+          throw new Error("Ingen gyldige data etter rensing.");
+        }
+
+        // Fjerner duplikater ved å beholde siste oppføring for hver person-dato-team-kombinasjon
+        const uniqueEntries = {};
+        cleanedData.forEach(row => {
+          const key = `${row["Navn"]}-${row["Dato for skritttallene"]}-${row["Hvilken team tilhører du?"]}`;
+          uniqueEntries[key] = {
+            name: row["Navn"],
+            team: row["Hvilken team tilhører du?"],
+            date: chrono.parseDate(row["Dato for skritttallene"]),
+            steps: parseFloat(row["Hvor mange skritt gikk du?"].replace(/,/g, '')) || 0
+          };
+        });
+
+        // Aggregerer skritt per team og teller unike medlemmer
+        const teamSteps = {};
+        const teamMembers = {};
+        Object.values(uniqueEntries).forEach(row => {
+          teamSteps[row.team] = (teamSteps[row.team] || 0) + row.steps;
+          teamMembers[row.team] = teamMembers[row.team] || new Set();
+          teamMembers[row.team].add(row.name);
+        });
+        const teamData = Object.entries(teamSteps).map(([team, steps]) => ({
+          name: team,
+          value: Math.round(steps / teamMembers[team].size)
+        }));
+
+        // Aggregerer skritt per person for topp 5 og finner personen med flest skritt
+        const personSteps = {};
+        const personDays = {};
+        Object.values(uniqueEntries).forEach(row => {
+          personSteps[row.name] = (personSteps[row.name] || 0) + row.steps;
+          personDays[row.name] = personDays[row.name] || new Set();
+          personDays[row.name].add(row.date.toISOString().split('T')[0]);
+        });
+        const top5Persons = Object.entries(personSteps)
+          .map(([name, steps]) => ({
+            name,
+            totalSteps: steps,
+            avgSteps: Math.round(steps / personDays[name].size)
+          }))
+          .sort((a, b) => b.totalSteps - a.totalSteps)
+          .slice(0, 5);
+
+        const topPerson = top5Persons[0]?.name || "Ingen data";
+        const teams = Object.keys(teamSteps);
+
+        return { teamData, top5Persons, topPerson, teams };
+      };
+
+      // Håndterer filopplasting
+      const handleFileUpload = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.csv')) {
+          setError('Vennligst last opp en CSV-fil.');
+          setData(null);
+          return;
+        }
+
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          transformHeader: header => header.trim().replace(/^"|"$/g, ''),
+          transform: (value, header) => value.trim().replace(/^"|"$/g, ''),
+          complete: (results) => {
+            try {
+              const cleanedData = processAndCleanData(results.data);
+              setData(cleanedData);
+              setError(null);
+            } catch (err) {
+              setError(err.message);
+              setData(null);
+            }
+          },
+          error: (err) => {
+            setError('Feil ved parsing av CSV: ' + err.message);
+            setData(null);
+          }
+        });
+      };
+
+      // Formaterer store tall for visning
+      const formatNumber = (num) => {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+        return num.toString();
+      };
+
+      // Eksporterer diagram som bilde
+      const downloadChart = (id, filename) => {
+        const element = document.getElementById(id);
+        html2canvas(element).then(canvas => {
+          const link = document.createElement('a');
+          link.download = filename;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        });
+      };
+
+      // Definerer farger for diagrammene
+      const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
+
+      return (
+        <div className="container">
+          {/* Viser overskrift og opplastingsfelt */}
+          <h1 className="text-2xl font-bold mb-4">Skrittkonkurranse Familie</h1>
+          <div className="mb-4">
+            <label className="block text-lg mb-2">Last opp CSV-fil fra Slack-listen:</label>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              className="border p-2 rounded"
+            />
+          </div>
+          {error && <p className="error text-lg mb-4">{error}</p>}
+
+          {/* Viser rapport hvis data er tilgjengelig */}
+          {data && (
+            <>
+              <p className="mb-4">
+                <strong>Sammendrag:</strong> Denne rapporten analyserer data fra skrittkonkurransen for følgende team: {data.teams.join(", ")}. 
+                Personen med flest skritt er {data.topPerson}. Rapporten viser gjennomsnittlig antall skritt per team basert på antall unike medlemmer og de fem mest aktive personene.
+              </p>
+
+              {/* Viser kakediagram for gjennomsnittlig skritt per team */}
+              <div className="chart-container" id="pie-chart">
+                <h2 className="text-xl font-semibold mb-2">Gjennomsnittlig antall skritt per team</h2>
+                <ResponsiveContainer width="100%" height={400}>
+                  <PieChart>
+                    <Pie
+                      data={data.teamData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={150}
+                      label={({ value }) => formatNumber(value)}
+                    >
+                      {data.teamData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => formatNumber(value)} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+                <button
+                  className="download-btn bg-blue-500 text-white px-4 py-2 rounded"
+                  onClick={() => downloadChart('pie-chart', 'gjennomsnitt_skritt_per_team.png')}
+                >
+                  Last ned som bilde
+                </button>
+              </div>
+
+              {/* Viser stolpediagram for topp 5 personer */}
+              <div className="chart-container" id="bar-chart">
+                <h2 className="text-xl font-semibold mb-2">Topp 5 personer etter totalt antall skritt</h2>
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={data.top5Persons} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" fontSize={12} />
+                    <YAxis yAxisId="left" fontSize={12} tickFormatter={formatNumber} />
+                    <YAxis yAxisId="right" orientation="right" fontSize={12} tickFormatter={formatNumber} />
+                    <Tooltip formatter={(value) => formatNumber(value)} />
+                    <Bar yAxisId="left" dataKey="totalSteps" fill="#0088FE" name="Totalt skritt" />
+                    <Bar yAxisId="right" dataKey="avgSteps" fill="#00C49F" name="Gjennomsnittlig skritt per dag" />
+                  </BarChart>
+                </ResponsiveContainer>
+                <button
+                  className="download-btn bg-blue-500 text-white px-4 py-2 rounded"
+                  onClick={() => downloadChart('bar-chart', 'topp_5_personer_skritt.png')}
+                >
+                  Last ned som bilde
+                </button>
+              </div>
+
+              {/* Viser konklusjon */}
+              <div>
+                <h2 className="text-xl font-semibold mb-2">Konklusjon</h2>
+                <p>
+                  Rapporten viser gjennomsnittlig skritttall per team og identifiserer de mest aktive personene. 
+                  {data.topPerson} leder konkurransen med flest skritt. Noen team har høye gjennomsnitt på grunn av svært aktive medlemmer, mens topp 5-personene viser variasjon i både totalt og gjennomsnittlig daglig antall skritt. 
+                  Økt deltakelse fra mindre aktive team kan bidra til en jevnere konkurranse.
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      );
+    };
+
+    // Rendrer appen
+    const root = createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
