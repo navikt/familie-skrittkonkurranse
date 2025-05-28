@@ -14,77 +14,84 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.15.0/Recharts.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
-    body { 
-      font-family: 'Source Sans 3', Arial, sans-serif; 
+    body {
+      font-family: 'Source Sans 3', Arial, sans-serif;
       background-color: #F7F7F7; /* Gray 100 */
       color: #1A1A1A; /* Gray 900 */
     }
+    .cls-1 {
+      fill: #c30000;
+      fill-rule: evenodd;
+      stroke-width: 0px;
+    }
     .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
-    .header { 
-      background: #FFFFFF; 
-      padding: 24px; 
-      border-radius: 8px; 
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-      display: flex; 
-      align-items: center; 
-      gap: 16px; 
+    .header {
+      background: #FFFFFF;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 16px;
       margin-bottom: 24px;
     }
-    .header img { 
-      height: 48px; 
-      width: auto; 
+    .header img {
+      height: 48px;
+      width: auto;
       padding: 8px; /* Luft rundt logo */
     }
-    .chart-container { 
-      margin: 32px 0; 
-      background: #FFFFFF; 
-      padding: 24px; 
-      border-radius: 8px; 
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+    .chart-container {
+      margin: 32px 0;
+      background: #FFFFFF;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border: 1px solid #E5E5E5; /* Gray 200 for better separation */
     }
     .text-2xl { font-size: 24px; font-weight: 600; }
     .text-xl { font-size: 20px; font-weight: 600; }
-    .download-btn { 
-      margin-top: 12px; 
+    .download-btn {
+      margin-top: 12px;
       background-color: #005B82; /* NAV Blue */
-      color: #FFFFFF; 
-      padding: 8px 16px; 
-      border-radius: 4px; 
+      color: #FFFFFF;
+      padding: 8px 16px;
+      border-radius: 4px;
       font-size: 16px;
     }
     .download-btn:hover { background-color: #003087; }
     .error { color: #C30000; /* NAV Red for errors */ }
-    .guide { 
+    .guide {
       background-color: #E6F0FA; /* Lys grå-blå for synlighet */
-      padding: 16px; 
-      border-radius: 8px; 
-      margin-top: 12px; 
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 12px;
       font-size: 16px;
       max-width: 75ch; /* Optimal linjelengde */
     }
     .guide ul { margin-left: 24px; }
-    .table-container { 
-      margin: 32px 0; 
-      background: #FFFFFF; 
-      padding: 24px; 
-      border-radius: 8px; 
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+    .table-container {
+      margin: 32px 0;
+      background: #FFFFFF;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border: 1px solid #E5E5E5; /* Gray 200 for better separation */
     }
     table { width: 100%; border-collapse: collapse; }
-    th, td { 
-      border: 1px solid #E5E5E5; 
-      padding: 12px; 
-      text-align: left; 
+    th, td {
+      border: 1px solid #E5E5E5;
+      padding: 12px;
+      text-align: left;
       font-size: 16px;
     }
     th { background-color: #005B82; color: #FFFFFF; }
     tr:nth-child(even) { background-color: #F7F7F7; }
     tr:hover { background-color: #E5E5E5; }
-    .date-input { 
-      margin-top: 12px; 
-      display: flex; 
-      align-items: center; 
-      gap: 12px; 
+    .date-input {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
       font-size: 16px;
     }
     .pie-chart-wrapper {
@@ -95,293 +102,311 @@
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-    // Initialiserer React og Recharts-komponenter
-    const { createRoot } = ReactDOM;
-    const { PieChart, Pie, Cell, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } = Recharts;
+<div id="root"></div>
+<script type="text/babel">
+  // Initialiserer React og Recharts-komponenter
+  const { createRoot } = ReactDOM;
+  const { PieChart, Pie, Cell, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } = Recharts;
 
-    // Genererer lysere farger for opptil 15 team
-    const generateColors = (numColors) => {
-      const colors = [
-        '#006E9F', // Lysere blå (NAV-inspirert)
-        '#2E8B57', // Lysere grønn
-        '#B33A4E', // Lysere rød (NAV-inspirert)
-        '#7A5A47', // Lysere brun
-        '#6B548F', // Lysere lilla
-        '#A0522D', // Lysere oransje
-        '#468C8C', // Lysere teal
-        '#6A4040', // Lysere vinrød
-        '#4A7BA3', // Lysere blågrå
-        '#8470FF', // Lysere indigo
-        '#6B5847', // Lysere taupe
-        '#496A8A', // Lysere skiferblå
-        '#7A4060', // Lysere plomme
-        '#5A7043', // Lysere oliven
-        '#6A406B'  // Lysere aubergine
-      ];
-      const result = [];
-      for (let i = 0; i < numColors; i++) {
-        result.push(colors[i % colors.length]);
-      }
-      return result;
+  // Genererer lysere farger for opptil 15 team
+  const generateColors = (numColors) => {
+    const colors = [
+      '#006E9F', // Lysere blå (NAV-inspirert)
+      '#2E8B57', // Lysere grønn
+      '#B33A4E', // Lysere rød (NAV-inspirert)
+      '#7A5A47', // Lysere brun
+      '#6B548F', // Lysere lilla
+      '#A0522D', // Lysere oransje
+      '#468C8C', // Lysere teal
+      '#6A4040', // Lysere vinrød
+      '#4A7BA3', // Lysere blågrå
+      '#8470FF', // Lysere indigo
+      '#6B5847', // Lysere taupe
+      '#496A8A', // Lysere skiferblå
+      '#7A4060', // Lysere plomme
+      '#5A7043', // Lysere oliven
+      '#6A406B'  // Lysere aubergine
+    ];
+    const result = [];
+    for (let i = 0; i < numColors; i++) {
+      result.push(colors[i % colors.length]);
+    }
+    return result;
+  };
+
+  // Definerer hovedkomponenten App
+  const App = () => {
+    const [data, setData] = React.useState(null);
+    const [error, setError] = React.useState(null);
+    const [startDate, setStartDate] = React.useState(null);
+    const [defaultStartDate, setDefaultStartDate] = React.useState(null);
+    const [rawData, setRawData] = React.useState(null); // Lagrer rådata for reprocessing
+    const [activeIndex, setActiveIndex] = React.useState(-1); // For hover-effekt på pie chart
+
+    // Hover-effekt for pie chart
+    const onPieEnter = (data, index) => {
+      setActiveIndex(index);
     };
 
-    // Definerer hovedkomponenten App
-    const App = () => {
-      const [data, setData] = React.useState(null);
-      const [error, setError] = React.useState(null);
-      const [startDate, setStartDate] = React.useState(null);
-      const [defaultStartDate, setDefaultStartDate] = React.useState(null);
-      const [rawData, setRawData] = React.useState(null); // Lagrer rådata for reprocessing
+    const onPieLeave = () => {
+      setActiveIndex(-1);
+    };
 
-      // Behandler og renser data
-      const processAndCleanData = (rawData, customStartDate = null) => {
-        if (!rawData || rawData.length === 0) {
-          throw new Error("CSV-filen er tom eller ugyldig.");
-        }
+    // Behandler og renser data
+    const processAndCleanData = (rawData, customStartDate = null) => {
+      if (!rawData || rawData.length === 0) {
+        throw new Error("CSV-filen er tom eller ugyldig.");
+      }
 
-        const requiredHeaders = ["Navn", "Hvilken team tilhører du?", "Dato for skritttallene", "Hvor mange skritt gikk du?"];
-        const headers = Object.keys(rawData[0]);
-        if (!requiredHeaders.every(header => headers.includes(header))) {
-          throw new Error("CSV-filen mangler nødvendige kolonner: " + requiredHeaders.join(", "));
-        }
+      const requiredHeaders = ["Navn", "Hvilken team tilhører du?", "Dato for skritttallene", "Hvor mange skritt gikk du?"];
+      const headers = Object.keys(rawData[0]);
+      if (!requiredHeaders.every(header => headers.includes(header))) {
+        throw new Error("CSV-filen mangler nødvendige kolonner: " + requiredHeaders.join(", "));
+      }
 
-        const cleanedData = rawData.filter(row => 
-          row["Navn"] && 
-          row["Hvilken team tilhører du?"] && 
-          row["Dato for skritttallene"] && 
-          row["Hvor mange skritt gikk du?"] && 
+      const cleanedData = rawData.filter(row =>
+          row["Navn"] &&
+          row["Hvilken team tilhører du?"] &&
+          row["Dato for skritttallene"] &&
+          row["Hvor mange skritt gikk du?"] &&
           !isNaN(parseFloat(row["Hvor mange skritt gikk du?"]))
-        );
+      );
 
-        if (cleanedData.length === 0) {
-          throw new Error("Ingen gyldige data etter rensing.");
-        }
+      if (cleanedData.length === 0) {
+        throw new Error("Ingen gyldige data etter rensing.");
+      }
 
-        // Fjerner duplikater ved å beholde siste oppføring for hver person-dato-team-kombinasjon
-        const uniqueEntries = {};
-        cleanedData.forEach(row => {
-          const key = `${row["Navn"]}-${row["Dato for skritttallene"]}-${row["Hvilken team tilhører du?"]}`;
-          uniqueEntries[key] = {
-            name: row["Navn"],
-            team: row["Hvilken team tilhører du?"],
-            date: chrono.parseDate(row["Dato for skritttallene"]),
-            steps: parseFloat(row["Hvor mange skritt gikk du?"].replace(/,/g, '')) || 0
-          };
-        });
-
-        // Finner konkurranseperioden
-        const dates = Object.values(uniqueEntries).map(entry => entry.date);
-        const minDate = new Date(Math.min(...dates));
-        const today = new Date(); // Dagens dato dynamisk
-        const endDate = today;
-        const chosenStartDate = customStartDate ? new Date(customStartDate) : minDate;
-        if (chosenStartDate > endDate) {
-          throw new Error("Startdato kan ikke være senere enn dagens dato.");
-        }
-        const competitionDays = Math.ceil((endDate - chosenStartDate) / (1000 * 60 * 60 * 24)) + 1; // Inkluderer begge ender
-        const formatDate = (date) => date.toLocaleDateString('no-NO', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        const periodInfo = {
-          from: formatDate(chosenStartDate),
-          to: formatDate(endDate),
-          days: competitionDays
+      // Fjerner duplikater ved å beholde siste oppføring for hver person-dato-team-kombinasjon
+      const uniqueEntries = {};
+      cleanedData.forEach(row => {
+        const key = `${row["Navn"]}-${row["Dato for skritttallene"]}-${row["Hvilken team tilhører du?"]}`;
+        uniqueEntries[key] = {
+          name: row["Navn"],
+          team: row["Hvilken team tilhører du?"],
+          date: chrono.parseDate(row["Dato for skritttallene"]),
+          steps: parseFloat(row["Hvor mange skritt gikk du?"].replace(/,/g, '')) || 0
         };
+      });
 
-        // Filtrer data innenfor valgt periode
-        const filteredEntries = Object.values(uniqueEntries).filter(entry => 
+      // Finner konkurranseperioden
+      const dates = Object.values(uniqueEntries).map(entry => entry.date);
+      const minDate = new Date(Math.min(...dates));
+      const today = new Date('2025-05-28T20:33:00+02:00'); // Setter dagens dato til 28. mai 2025, 08:33 PM CEST
+      const endDate = today;
+      const chosenStartDate = customStartDate ? new Date(customStartDate) : minDate;
+      if (chosenStartDate > endDate) {
+        throw new Error("Startdato kan ikke være senere enn dagens dato.");
+      }
+      const competitionDays = Math.ceil((endDate - chosenStartDate) / (1000 * 60 * 60 * 24)) + 1; // Inkluderer begge ender
+      const formatDate = (date) => date.toLocaleDateString('no-NO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const periodInfo = {
+        from: formatDate(chosenStartDate),
+        to: formatDate(endDate),
+        days: competitionDays
+      };
+
+      // Filtrer data innenfor valgt periode
+      const filteredEntries = Object.values(uniqueEntries).filter(entry =>
           entry.date >= chosenStartDate && entry.date <= endDate
-        );
+      );
 
-        // Aggregerer skritt per team og teller unike medlemmer
-        const teamSteps = {};
-        const teamMembers = {};
-        filteredEntries.forEach(row => {
-          teamSteps[row.team] = (teamSteps[row.team] || 0) + row.steps;
-          teamMembers[row.team] = teamMembers[row.team] || new Set();
-          teamMembers[row.team].add(row.name);
+      // Aggregerer skritt per team og teller unike medlemmer
+      const teamSteps = {};
+      const teamMembers = {};
+      filteredEntries.forEach(row => {
+        teamSteps[row.team] = (teamSteps[row.team] || 0) + row.steps;
+        teamMembers[row.team] = teamMembers[row.team] || new Set();
+        teamMembers[row.team].add(row.name);
+      });
+      const teamData = Object.entries(teamSteps).map(([team, steps]) => ({
+        name: team,
+        value: teamMembers[team].size > 0 ? Math.round(steps / teamMembers[team].size) : 0 // Gjennomsnitt per medlem
+      })).sort((a, b) => b.value - a.value); // Sorterer team etter gjennomsnittlig skritt
+
+      // Finner ledende team og forskjellen mellom 1. og 2. plass
+      const leadingTeam = teamData[0]?.name || "Ingen data";
+      const stepsDifference = teamData.length >= 2 ? Math.abs(teamData[0].value - teamData[1].value) : 0;
+
+      // Beregner forskjeller mellom topp 3 team
+      const top3Teams = teamData.slice(0, 3);
+      const teamDifferences = [];
+      if (top3Teams.length >= 2) {
+        teamDifferences.push({
+          teams: `${top3Teams[0].name} vs ${top3Teams[1].name}`,
+          difference: Math.abs(top3Teams[0].value - top3Teams[1].value)
         });
-        const teamData = Object.entries(teamSteps).map(([team, steps]) => ({
-          name: team,
-          value: teamMembers[team].size > 0 ? Math.round(steps / teamMembers[team].size) : 0 // Gjennomsnitt per medlem
-        })).sort((a, b) => b.value - a.value); // Sorterer team etter gjennomsnittlig skritt
+      }
+      if (top3Teams.length === 3) {
+        teamDifferences.push({
+          teams: `${top3Teams[1].name} vs ${top3Teams[2].name}`,
+          difference: Math.abs(top3Teams[1].value - top3Teams[2].value)
+        });
+        teamDifferences.push({
+          teams: `${top3Teams[0].name} vs ${top3Teams[2].name}`,
+          difference: Math.abs(top3Teams[0].value - top3Teams[2].value)
+        });
+      }
 
-        // Finner ledende team og forskjellen mellom 1. og 2. plass
-        const leadingTeam = teamData[0]?.name || "Ingen data";
-        const stepsDifference = teamData.length >= 2 ? Math.abs(teamData[0].value - teamData[1].value) : 0;
-
-        // Beregner forskjeller mellom topp 3 team
-        const top3Teams = teamData.slice(0, 3);
-        const teamDifferences = [];
-        if (top3Teams.length >= 2) {
-          teamDifferences.push({
-            teams: `${top3Teams[0].name} vs ${top3Teams[1].name}`,
-            difference: Math.abs(top3Teams[0].value - top3Teams[1].value)
-          });
-        }
-        if (top3Teams.length === 3) {
-          teamDifferences.push({
-            teams: `${top3Teams[1].name} vs ${top3Teams[2].name}`,
-            difference: Math.abs(top3Teams[1].value - top3Teams[2].value)
-          });
-          teamDifferences.push({
-            teams: `${top3Teams[0].name} vs ${top3Teams[2].name}`,
-            difference: Math.abs(top3Teams[0].value - top3Teams[2].value)
-          });
-        }
-
-        // Forbereder data for stablet stolpediagram (daglige skritt for topp 3 team)
-        const dailyTeamSteps = {};
-        const top3TeamNames = top3Teams.map(team => team.name);
-        filteredEntries.forEach(row => {
-          if (top3TeamNames.includes(row.team)) {
-            const dateKey = formatDate(row.date);
-            if (!dailyTeamSteps[dateKey]) {
-              dailyTeamSteps[dateKey] = {};
-              top3TeamNames.forEach(team => {
-                dailyTeamSteps[dateKey][team] = 0;
-              });
-            }
-            dailyTeamSteps[dateKey][row.team] += row.steps;
+      // Forbereder data for stablet stolpediagram (gjennomsnittlig daglig skritt per person for topp 3 team)
+      const dailyTeamSteps = {};
+      const dailyTeamContributors = {}; // Sporer antall bidragsytere per dag per team
+      const top3TeamNames = top3Teams.map(team => team.name);
+      filteredEntries.forEach(row => {
+        if (top3TeamNames.includes(row.team)) {
+          const dateKey = formatDate(row.date);
+          if (!dailyTeamSteps[dateKey]) {
+            dailyTeamSteps[dateKey] = {};
+            dailyTeamContributors[dateKey] = {};
+            top3TeamNames.forEach(team => {
+              dailyTeamSteps[dateKey][team] = 0;
+              dailyTeamContributors[dateKey][team] = new Set();
+            });
           }
-        });
-
-        const dailyTeamData = Object.entries(dailyTeamSteps)
-          .map(([date, steps]) => ({
-            date,
-            ...steps
-          }))
-          .sort((a, b) => new Date(a.date.split('.').reverse().join('-')) - new Date(b.date.split('.').reverse().join('-')));
-
-        // Aggregerer skritt per person for topp 5 og total oversikt
-        const personSteps = {};
-        const personDays = {};
-        const personTeams = {};
-        filteredEntries.forEach(row => {
-          personSteps[row.name] = (personSteps[row.name] || 0) + row.steps;
-          personDays[row.name] = personDays[row.name] || new Set();
-          personDays[row.name].add(row.date.toISOString().split('T')[0]);
-          personTeams[row.name] = row.team; // Antatt at hver person tilhører ett team
-        });
-        const top5Persons = Object.entries(personSteps)
-          .map(([name, steps]) => ({
-            name: `${name} (${personTeams[name]})`,
-            totalSteps: steps,
-            avgSteps: personDays[name].size > 0 ? Math.round(steps / personDays[name].size) : 0
-          }))
-          .sort((a, b) => b.totalSteps - a.totalSteps)
-          .slice(0, 5);
-
-        const allPersons = Object.entries(personSteps)
-          .map(([name, steps]) => ({
-            name,
-            team: personTeams[name],
-            totalSteps: steps,
-            avgSteps: personDays[name].size > 0 ? Math.round(steps / personDays[name].size) : 0
-          }))
-          .sort((a, b) => b.totalSteps - a.totalSteps);
-
-        const topPerson = allPersons[0]?.name || "Ingen data";
-        const teams = Object.keys(teamSteps);
-        const teamColors = generateColors(teams.length); // Genererer lysere farger for alle team
-
-        return { teamData, dailyTeamData, top3TeamNames, teamColors, top5Persons, allPersons, topPerson, teams, periodInfo, defaultStartDate: minDate, teamDifferences, leadingTeam, stepsDifference };
-      };
-
-      // Håndterer filopplasting
-      const handleFileUpload = (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        if (!file.name.endsWith('.csv')) {
-          setError('Vennligst last opp en CSV-fil.');
-          setData(null);
-          setRawData(null);
-          return;
+          dailyTeamSteps[dateKey][row.team] += row.steps;
+          dailyTeamContributors[dateKey][row.team].add(row.name);
         }
+      });
 
-        Papa.parse(file, {
-          header: true,
-          skipEmptyLines: true,
-          transformHeader: header => header.trim().replace(/^"|"$/g, ''),
-          transform: (value, header) => value.trim().replace(/^"|"$/g, ''),
-          complete: (results) => {
-            try {
-              const cleanedData = processAndCleanData(results.data);
-              setRawData(results.data); // Lagrer rådata
-              setData(cleanedData);
-              setDefaultStartDate(cleanedData.defaultStartDate);
-              setStartDate(null); // Nullstiller startdato ved ny opplasting
-              setError(null);
-            } catch (err) {
-              setError(err.message);
-              setData(null);
-              setRawData(null);
-            }
-          },
-          error: (err) => {
-            setError('Feil ved parsing av CSV: ' + err.message);
-            setData(null);
-            setRawData(null);
-          }
+      // Beregner gjennomsnittlig skritt per person per dag
+      const dailyTeamData = Object.entries(dailyTeamSteps)
+      .map(([date, steps]) => {
+        const avgSteps = {};
+        top3TeamNames.forEach(team => {
+          const contributors = dailyTeamContributors[date][team].size;
+          avgSteps[team] = contributors > 0 ? Math.round(steps[team] / contributors) : 0;
         });
-      };
+        return { date, ...avgSteps };
+      })
+      .sort((a, b) => new Date(a.date.split('.').reverse().join('-')) - new Date(b.date.split('.').reverse().join('-')));
 
-      // Håndterer endring av startdato
-      const handleStartDateChange = (event) => {
-        const newDate = event.target.value;
-        if (rawData) {
+      // Aggregerer skritt per person for topp 5 og total oversikt
+      const personSteps = {};
+      const personDays = {};
+      const personTeams = {};
+      filteredEntries.forEach(row => {
+        personSteps[row.name] = (personSteps[row.name] || 0) + row.steps;
+        personDays[row.name] = personDays[row.name] || new Set();
+        personDays[row.name].add(row.date.toISOString().split('T')[0]);
+        personTeams[row.name] = row.team; // Antatt at hver person tilhører ett team
+      });
+      const top5Persons = Object.entries(personSteps)
+      .map(([name, steps]) => ({
+        name: `${name} (${personTeams[name]})`,
+        totalSteps: steps,
+        avgSteps: personDays[name].size > 0 ? Math.round(steps / personDays[name].size) : 0
+      }))
+      .sort((a, b) => b.totalSteps - a.totalSteps)
+      .slice(0, 5);
+
+      const allPersons = Object.entries(personSteps)
+      .map(([name, steps]) => ({
+        name,
+        team: personTeams[name],
+        totalSteps: steps,
+        avgSteps: personDays[name].size > 0 ? Math.round(steps / personDays[name].size) : 0
+      }))
+      .sort((a, b) => b.totalSteps - a.totalSteps);
+
+      const topPerson = allPersons[0]?.name || "Ingen data";
+      const teams = Object.keys(teamSteps);
+      const teamColors = generateColors(teams.length); // Genererer lysere farger for alle team
+
+      return { teamData, dailyTeamData, top3TeamNames, teamColors, top5Persons, allPersons, topPerson, teams, periodInfo, defaultStartDate: minDate, teamDifferences, leadingTeam, stepsDifference };
+    };
+
+    // Håndterer filopplasting
+    const handleFileUpload = (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (!file.name.endsWith('.csv')) {
+        setError('Vennligst last opp en CSV-fil.');
+        setData(null);
+        setRawData(null);
+        return;
+      }
+
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: header => header.trim().replace(/^"|"$/g, ''),
+        transform: (value, header) => value.trim().replace(/^"|"$/g, ''),
+        complete: (results) => {
           try {
-            const updatedData = processAndCleanData(rawData, newDate || null);
-            setData(updatedData);
-            setStartDate(newDate || null);
+            const cleanedData = processAndCleanData(results.data);
+            setRawData(results.data); // Lagrer rådata
+            setData(cleanedData);
+            setDefaultStartDate(cleanedData.defaultStartDate);
+            setStartDate(null); // Nullstiller startdato ved ny opplasting
             setError(null);
           } catch (err) {
             setError(err.message);
+            setData(null);
+            setRawData(null);
           }
+        },
+        error: (err) => {
+          setError('Feil ved parsing av CSV: ' + err.message);
+          setData(null);
+          setRawData(null);
         }
-      };
+      });
+    };
 
-      // Formaterer tall som hele tall uten forkortelser
-      const formatNumber = (num) => {
-        return Math.round(num).toLocaleString('no-NO'); // Viser hele tall med tusenskilletegn
-      };
+    // Håndterer endring av startdato
+    const handleStartDateChange = (event) => {
+      const newDate = event.target.value;
+      if (rawData) {
+        try {
+          const updatedData = processAndCleanData(rawData, newDate || null);
+          setData(updatedData);
+          setStartDate(newDate || null);
+          setError(null);
+        } catch (err) {
+          setError(err.message);
+        }
+      }
+    };
 
-      // Eksporterer diagram som bilde
-      const downloadChart = (id, filename) => {
-        const element = document.getElementById(id);
-        html2canvas(element).then(canvas => {
-          const link = document.createElement('a');
-          link.download = filename;
-          link.href = canvas.toDataURL('image/png');
-          link.click();
-        });
-      };
+    // Formaterer tall som hele tall uten forkortelser
+    const formatNumber = (num) => {
+      return Math.round(num).toLocaleString('no-NO'); // Viser hele tall med tusenskilletegn
+    };
 
-      return (
+    // Eksporterer diagram som bilde
+    const downloadChart = (id, filename) => {
+      const element = document.getElementById(id);
+      html2canvas(element).then(canvas => {
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    };
+
+    return (
         <div className="container">
           {/* Viser konkurranseoverskrift med NAV-logo */}
           <div className="header">
             <svg width="80px" height="80px" viewBox="0 0 269 169" >
-    <defs>
-        <polygon id="path-1" points="22.407 43.4168 22.407 0.6878 0.5635 0.6878 0.5635 43.4168 22.407 43.4168"></polygon>
-    </defs>
-    <g id="Modul-forslag" stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
-        <g id="NAV-logo-/-rød">
-            <g id="Page-1-Copy">
-                <path d="M125.3091,168.942 C78.6681,168.942 40.8491,131.125 40.8491,84.477 C40.8491,37.824 78.6681,0 125.3091,0 C171.9671,0 209.7901,37.824 209.7901,84.477 C209.7901,131.125 171.9671,168.942 125.3091,168.942 Z" id="Fill-1" fill="#C30000"></path>
-                <polygon id="Fill-3" fill="#C30000" points="0 121.3588 17.265 78.6298 33.854 78.6298 16.611 121.3588"></polygon>
-                <polygon id="Fill-5" fill="#C30000" points="213.044 121.3588 230.088 78.6298 239.132 78.6298 222.089 121.3588"></polygon>
-                <g id="Group-9" transform="translate(246.000000, 77.942000)">
-              
-                    <g id="Clip-8"></g>
-                    <polygon id="Fill-7" fill="#C30000" mask="url(#mask-2)" points="0.5635 43.4168 17.6045 0.6878 22.4075 0.6878 5.3645 43.4168"></polygon>
+              <defs>
+                <polygon id="path-1" points="22.407 43.4168 22.407 0.6878 0.5635 0.6878 0.5635 43.4168 22.407 43.4168"></polygon>
+              </defs>
+              <g id="Modul-forslag" stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
+                <g id="NAV-logo-/-rød">
+                  <g id="Page-1-Copy">
+                    <path d="M125.3091,168.942 C78.6681,168.942 40.8491,131.125 40.8491,84.477 C40.8491,37.824 78.6681,0 125.3091,0 C171.9671,0 209.7901,37.824 209.7901,84.477 C209.7901,131.125 171.9671,168.942 125.3091,168.942 Z" id="Fill-1" fill="#C30000"></path>
+                    <polygon id="Fill-3" fill="#C30000" points="0 121.3588 17.265 78.6298 33.854 78.6298 16.611 121.3588"></polygon>
+                    <polygon id="Fill-5" fill="#C30000" points="213.044 121.3588 230.088 78.6298 239.132 78.6298 222.089 121.3588"></polygon>
+                    <g id="Group-9" transform="translate(246.000000, 77.942000)">
+                      <g id="Clip-8"></g>
+                      <polygon id="Fill-7" fill="#C30000" mask="url(#mask-2)" points="0.5635 43.4168 17.6045 0.6878 22.4075 0.6878 5.3645 43.4168"></polygon>
+                    </g>
+                    <path d="M197.3604,78.6298 L182.3444,78.6298 C182.3444,78.6298 181.3094,78.6298 180.9434,79.5438 L172.6334,104.9828 L164.3304,79.5438 C163.9644,78.6298 162.9234,78.6298 162.9234,78.6298 L134.0514,78.6298 C133.4264,78.6298 132.9024,79.1518 132.9024,79.7728 L132.9024,88.4118 C132.9024,81.5588 125.6104,78.6298 121.3404,78.6298 C111.7784,78.6298 105.3774,84.9278 103.3844,94.5028 C103.2764,88.1508 102.7484,85.8748 101.0374,83.5438 C100.2514,82.4018 99.1154,81.4418 97.8784,80.6478 C95.3314,79.1558 93.0444,78.6298 88.1294,78.6298 L82.3584,78.6298 C82.3584,78.6298 81.3154,78.6298 80.9474,79.5438 L75.6964,92.5568 L75.6964,79.7728 C75.6964,79.1518 75.1764,78.6298 74.5524,78.6298 L61.1984,78.6298 C61.1984,78.6298 60.1674,78.6298 59.7924,79.5438 L54.3334,93.0748 C54.3334,93.0748 53.7884,94.4278 55.0344,94.4278 L60.1674,94.4278 L60.1674,120.2118 C60.1674,120.8518 60.6714,121.3588 61.3144,121.3588 L74.5524,121.3588 C75.1764,121.3588 75.6964,120.8518 75.6964,120.2118 L75.6964,94.4278 L80.8564,94.4278 C83.8174,94.4278 84.4444,94.5088 85.5964,95.0458 C86.2904,95.3078 86.9154,95.8378 87.2564,96.4488 C87.9544,97.7628 88.1294,99.3408 88.1294,103.9938 L88.1294,120.2118 C88.1294,120.8518 88.6434,121.3588 89.2784,121.3588 L101.9664,121.3588 C101.9664,121.3588 103.4004,121.3588 103.9674,119.9428 L106.7794,112.9928 C110.5184,118.2298 116.6724,121.3588 124.3204,121.3588 L125.9914,121.3588 C125.9914,121.3588 127.4344,121.3588 128.0054,119.9428 L132.9024,107.8148 L132.9024,120.2118 C132.9024,120.8518 133.4264,121.3588 134.0514,121.3588 L147.0034,121.3588 C147.0034,121.3588 148.4324,121.3588 149.0064,119.9428 C149.0064,119.9428 154.1864,107.0818 154.2064,106.9848 L154.2144,106.9848 C154.4134,105.9148 153.0614,105.9148 153.0614,105.9148 L148.4384,105.9148 L148.4384,83.8468 L162.9834,119.9428 C163.5514,121.3588 164.9834,121.3588 164.9834,121.3588 L180.2844,121.3588 C180.2844,121.3588 181.7244,121.3588 182.2924,119.9428 L198.4174,80.0138 C198.9754,78.6298 197.3604,78.6298 197.3604,78.6298 L197.3604,78.6298 Z M132.9024,105.9148 L124.2024,105.9148 C120.7394,105.9148 117.9224,103.1108 117.9224,99.6438 C117.9224,96.1828 120.7394,93.3608 124.2024,93.3608 L126.6354,93.3608 C130.0894,93.3608 132.9024,96.1828 132.9024,99.6438 L132.9024,105.9148 Z" id="Fill-10" fill="#FEFEFE"></path>
+                  </g>
                 </g>
-                <path d="M197.3604,78.6298 L182.3444,78.6298 C182.3444,78.6298 181.3094,78.6298 180.9434,79.5438 L172.6334,104.9828 L164.3304,79.5438 C163.9644,78.6298 162.9234,78.6298 162.9234,78.6298 L134.0514,78.6298 C133.4264,78.6298 132.9024,79.1518 132.9024,79.7728 L132.9024,88.4118 C132.9024,81.5588 125.6104,78.6298 121.3404,78.6298 C111.7784,78.6298 105.3774,84.9278 103.3844,94.5028 C103.2764,88.1508 102.7484,85.8748 101.0374,83.5438 C100.2514,82.4018 99.1154,81.4418 97.8784,80.6478 C95.3314,79.1558 93.0444,78.6298 88.1294,78.6298 L82.3584,78.6298 C82.3584,78.6298 81.3154,78.6298 80.9474,79.5438 L75.6964,92.5568 L75.6964,79.7728 C75.6964,79.1518 75.1764,78.6298 74.5524,78.6298 L61.1984,78.6298 C61.1984,78.6298 60.1674,78.6298 59.7924,79.5438 L54.3334,93.0748 C54.3334,93.0748 53.7884,94.4278 55.0344,94.4278 L60.1674,94.4278 L60.1674,120.2118 C60.1674,120.8518 60.6714,121.3588 61.3144,121.3588 L74.5524,121.3588 C75.1764,121.3588 75.6964,120.8518 75.6964,120.2118 L75.6964,94.4278 L80.8564,94.4278 C83.8174,94.4278 84.4444,94.5088 85.5964,95.0458 C86.2904,95.3078 86.9154,95.8378 87.2564,96.4488 C87.9544,97.7628 88.1294,99.3408 88.1294,103.9938 L88.1294,120.2118 C88.1294,120.8518 88.6434,121.3588 89.2784,121.3588 L101.9664,121.3588 C101.9664,121.3588 103.4004,121.3588 103.9674,119.9428 L106.7794,112.9928 C110.5184,118.2298 116.6724,121.3588 124.3204,121.3588 L125.9914,121.3588 C125.9914,121.3588 127.4344,121.3588 128.0054,119.9428 L132.9024,107.8148 L132.9024,120.2118 C132.9024,120.8518 133.4264,121.3588 134.0514,121.3588 L147.0034,121.3588 C147.0034,121.3588 148.4324,121.3588 149.0064,119.9428 C149.0064,119.9428 154.1864,107.0818 154.2064,106.9848 L154.2144,106.9848 C154.4134,105.9148 153.0614,105.9148 153.0614,105.9148 L148.4384,105.9148 L148.4384,83.8468 L162.9834,119.9428 C163.5514,121.3588 164.9834,121.3588 164.9834,121.3588 L180.2844,121.3588 C180.2844,121.3588 181.7244,121.3588 182.2924,119.9428 L198.4174,80.0138 C198.9754,78.6298 197.3604,78.6298 197.3604,78.6298 L197.3604,78.6298 Z M132.9024,105.9148 L124.2024,105.9148 C120.7394,105.9148 117.9224,103.1108 117.9224,99.6438 C117.9224,96.1828 120.7394,93.3608 124.2024,93.3608 L126.6354,93.3608 C130.0894,93.3608 132.9024,96.1828 132.9024,99.6438 L132.9024,105.9148 Z" id="Fill-10" fill="#FEFEFE"></path>
-            </g>
-        </g>
-    </g>
-</svg>
+              </g>
+            </svg>
             <div>
               <h1 className="text-2xl">Skrittkonkurranse Seksjon for Familieytelser - Leaderboard</h1>
               <p className="mt-2">Seksjon for Familieytelser konkurrerer: Hvilken team går flest skritt?</p>
@@ -392,21 +417,21 @@
           <div className="mt-6">
             <label className="block text-lg font-semibold mb-2">Last opp CSV-fil fra Slack-listen:</label>
             <input
-              type="file"
-              accept=".csv"
-              onChange={handleFileUpload}
-              className="border p-2 rounded w-full"
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="border p-2 rounded w-full"
             />
             {data && (
-              <div className="date-input">
-                <label className="text-lg font-semibold">Velg startdato (valgfritt, standard: tidligste dato):</label>
-                <input
-                  type="date"
-                  onChange={handleStartDateChange}
-                  className="border p-2 rounded"
-                  defaultValue={defaultStartDate ? defaultStartDate.toISOString().split('T')[0] : ''}
-                />
-              </div>
+                <div className="date-input">
+                  <label className="text-lg font-semibold">Velg startdato (valgfritt, standard: tidligste dato):</label>
+                  <input
+                      type="date"
+                      onChange={handleStartDateChange}
+                      className="border p-2 rounded"
+                      defaultValue={defaultStartDate ? defaultStartDate.toISOString().split('T')[0] : ''}
+                  />
+                </div>
             )}
             <div className="guide">
               <h3 className="text-lg font-semibold mb-2">Guide for å laste ned CSV-fil fra Slack</h3>
@@ -416,7 +441,7 @@
                 <li>Velg <strong>"Last ned CSV" / "Download CSV"</strong> fra menyen for å laste ned filen.</li>
                 <li>Trykk på velg fil knappen og velg filen du akkurat lastet ned</li>
                 <li><div className="inline-flex">Magic happens <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 -52 1128 1128" class="icon" version="1.1"><path d="M473.184 356.632c-23.048-28.336-64.616-32.632-92.816-9.672-28.248 23.048-32.568 64.528-9.616 92.84l473.328 547.152c22.928 28.248 64.376 32.488 92.776 9.552 28.224-22.992 32.512-64.528 9.528-92.752l-473.2-547.12z" fill="#0092D2"/><path d="M151.4 65.976l-1.056-0.472 54.912 223.104L52.68 460.32l229.128 16.664 116.12 198.2 56.8-139.376 389.6 450.344c22.224 27.4 61.792 31.984 90.072 11.32L151.4 65.976z" fill="#0085BF"/><path d="M150.104 66.304L360.56 158.4 555.752 37.224l-22.52 228.6L708.8 414.016l-224.416 49.24-86.664 212.728-116.152-198.2-229.12-16.672 152.6-171.712z" fill="#F5B146"/><path d="M276.192 225.08l95.368 41.712 88.424-54.888-10.2 103.576 79.568 67.144-101.704 22.312-39.28 96.368-52.616-89.816-103.808-7.52 69.144-77.816z" fill="#E5226B"/><path d="M484.384 463.256l0.528-0.112L152.072 67.152l-1.208-0.528 54.856 222.92-152.48 171.624 228.328 16.616 0.064 0.08 0.648 0.064 115.68 197.464z" fill="#EF962F"/><path d="M434.56 403.408L289.6 230.928l-13.408-5.848 24.896 101.072-69.144 77.816 103.808 7.52 52.616 89.816 39.28-96.368z" fill="#C9005B"/></svg></div> </li>
-                <li>Nå ser du en oversikt over resultatet :)</li>
+                <li>Nå ser du en fin oversikt over resultatet :)</li>
               </ol>
             </div>
           </div>
@@ -424,143 +449,169 @@
 
           {/* Viser rapport hvis data er tilgjengelig */}
           {data && (
-            <>
-              <p className="mt-6 mb-4 text-lg">
-                <strong>Sammendrag:</strong> Denne konkurransen for NAVs familieavdeling viser at <strong>{data.leadingTeam}</strong> leder. 
-                Forskjellen mellom 1. og 2. plass er {formatNumber(data.stepsDifference)} skritt. 
-                Leder er {data.topPerson} med flest skritt. Perioden går fra {data.periodInfo.from} til {data.periodInfo.to} ({data.periodInfo.days} dager). 
-                Nedenfor vises gjennomsnittlig antall skritt per person per team, daglig innsats for topp 3 team, topp 5 deltakere, og en detaljert leaderboard.
-                {data.teamDifferences.length > 0 && (
-                  <>
-                    <br /><strong>Forskjeller mellom topp 3 team i gjennomsnittlig skritt per person:</strong>
-                    <ul className="list-disc list-inside">
-                      {data.teamDifferences.map((diff, index) => (
-                        <li key={index}>{diff.teams}: {formatNumber(diff.difference)} skritt</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-              </p>
-
-              {/* Viser kakediagram for gjennomsnittlig skritt per team per person */}
-              <div className="chart-container" id="pie-chart">
-                <h2 className="text-xl mb-1">Gjennomsnittlig antall skritt per person per team</h2>
-                <div className="pie-chart-wrapper">
-                  <ResponsiveContainer width="100%" height={350}>
-                    <PieChart>
-                      <Pie
-                        data={data.teamData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="40%" // Flytter diagrammet litt til venstre for å gi plass til legenden
-                        cy="50%"
-                        outerRadius={130}
-                        label={({ value }) => formatNumber(value)}
-                      >
-                        {data.teamData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={data.teamColors[index]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => formatNumber(value)} />
-                      <Legend layout="vertical" verticalAlign="middle" align="right" />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <button
-                  className="download-btn"
-                  onClick={() => downloadChart('pie-chart', 'gjennomsnitt_skritt_per_team.png')}
-                >
-                  Last ned som bilde
-                </button>
-              </div>
-
-              {/* Viser stablet stolpediagram for daglige skritt for topp 3 team */}
-              <div className="chart-container" id="stacked-bar-chart">
-                <h2 className="text-xl mb-2">Daglig skrittinnsats for topp 3 team</h2>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={data.dailyTeamData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" fontSize={14} />
-                    <YAxis fontSize={14} tickFormatter={formatNumber} />
-                    <Tooltip formatter={(value) => formatNumber(value)} />
-                    <Legend />
-                    {data.top3TeamNames.map((team, index) => (
-                      <Bar key={team} dataKey={team} stackId="a" fill={data.teamColors[index]} name={team} />
-                    ))}
-                  </BarChart>
-                </ResponsiveContainer>
-                <button
-                  className="download-btn"
-                  onClick={() => downloadChart('stacked-bar-chart', 'daglig_skritt_topp_3_team.png')}
-                >
-                  Last ned som bilde
-                </button>
-              </div>
-
-              {/* Viser stolpediagram for topp 5 personer */}
-              <div className="chart-container" id="bar-chart">
-                <h2 className="text-xl mb-2">Topp 5 deltakere etter totalt antall skritt</h2>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={data.top5Persons} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" fontSize={14} />
-                    <YAxis yAxisId="left" fontSize={14} tickFormatter={formatNumber} />
-                    <YAxis yAxisId="right" orientation="right" fontSize={14} tickFormatter={formatNumber} />
-                    <Tooltip formatter={(value) => formatNumber(value)} />
-                    <Bar yAxisId="left" dataKey="totalSteps" fill="#0088FE" name="Totalt skritt" />
-                    <Bar yAxisId="right" dataKey="avgSteps" fill="#00C49F" name="Gjennomsnittlig skritt per dag" />
-                  </BarChart>
-                </ResponsiveContainer>
-                <button
-                  className="download-btn"
-                  onClick={() => downloadChart('bar-chart', 'topp_5_personer_skritt.png')}
-                >
-                  Last ned som bilde
-                </button>
-              </div>
-
-              {/* Viser tabell som leaderboard */}
-              <div className="table-container">
-                <h2 className="text-xl mb-2">Leaderboard - Alle deltakere</h2>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Navn</th>
-                      <th>Team</th>
-                      <th>Totalt skritt</th>
-                      <th>Gjennomsnittlig skritt per dag</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.allPersons.map((person, index) => (
-                      <tr key={index}>
-                        <td>{person.name}</td>
-                        <td>{person.team}</td>
-                        <td>{formatNumber(person.totalSteps)}</td>
-                        <td>{formatNumber(person.avgSteps)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Viser konklusjon */}
-              <div className="mt-6">
-                <h2 className="text-xl mb-2">Konklusjon</h2>
-                <p className="text-lg max-w-[75ch]">
-                  Konkurransen viser hvordan teamene i NAVs familieavdeling rangeres basert på gjennomsnittlig skritt per person over perioden ({data.periodInfo.from} til {data.periodInfo.to}, {data.periodInfo.days} dager). 
-                  {data.topPerson} leder med flest skritt. Toppteamene viser sterk innsats, men forskjeller indikerer rom for jevnere konkurranse. Økt deltakelse fra mindre aktive team kan løfte resultatene!
+              <>
+                <p className="mt-6 mb-4 text-lg">
+                  <strong>Sammendrag:</strong> Denne konkurransen for NAVs familieavdeling viser at <strong>{data.leadingTeam}</strong> leder.
+                  Forskjellen mellom 1. og 2. plass er {formatNumber(data.stepsDifference)} skritt.
+                  Leder er {data.topPerson} med flest skritt. Perioden går fra {data.periodInfo.from} til {data.periodInfo.to} ({data.periodInfo.days} dager).
+                  Nedenfor vises gjennomsnittlig antall skritt per person per team, daglig innsats for topp 3 team, topp 5 deltakere, og en detaljert leaderboard.
+                  {data.teamDifferences.length > 0 && (
+                      <>
+                        <br /><strong>Forskjeller mellom topp 3 team i gjennomsnittlig skritt per person:</strong>
+                        <ul className="list-disc list-inside">
+                          {data.teamDifferences.map((diff, index) => (
+                              <li key={index}>{diff.teams}: {formatNumber(diff.difference)} skritt</li>
+                          ))}
+                        </ul>
+                      </>
+                  )}
                 </p>
-              </div>
-            </>
+
+                {/* Viser kakediagram for gjennomsnittlig skritt per team per person */}
+                <div className="chart-container" id="pie-chart">
+                  <h2 className="text-xl mb-1">Gjennomsnittlig antall skritt per person per team</h2>
+                  <div className="pie-chart-wrapper">
+                    <ResponsiveContainer width="100%" height={350} aria-label="Pie chart showing average steps per team">
+                      <PieChart>
+                        <Pie
+                            data={data.teamData}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="40%"
+                            cy="50%"
+                            outerRadius={activeIndex === -1 ? 130 : 130} // Standard radius
+                            activeIndex={activeIndex}
+                            activeShape={(props) => {
+                              const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+                              return (
+                                  <g>
+                                    <path
+                                        d={`
+                                  M ${cx + (outerRadius + 10) * Math.cos((startAngle * Math.PI) / 180)},
+                                  ${cy + (outerRadius + 10) * Math.sin((startAngle * Math.PI) / 180)}
+                                  A ${outerRadius + 10},${outerRadius + 10} 0 0,1
+                                  ${cx + (outerRadius + 10) * Math.cos((endAngle * Math.PI) / 180)},
+                                  ${cy + (outerRadius + 10) * Math.sin((endAngle * Math.PI) / 180)}
+                                  L ${cx + innerRadius * Math.cos((endAngle * Math.PI) / 180)},
+                                  ${cy + innerRadius * Math.sin((endAngle * Math.PI) / 180)}
+                                  A ${innerRadius},${innerRadius} 0 0,0
+                                  ${cx + innerRadius * Math.cos((startAngle * Math.PI) / 180)},
+                                  ${cy + innerRadius * Math.sin((startAngle * Math.PI) / 180)}
+                                  Z
+                                `}
+                                        fill={fill}
+                                    />
+                                  </g>
+                              );
+                            }}
+                            label={({ value }) => formatNumber(value)}
+                            onMouseEnter={onPieEnter}
+                            onMouseLeave={onPieLeave}
+                        >
+                          {data.teamData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={data.teamColors[index]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => formatNumber(value)} />
+                        <Legend layout="vertical" verticalAlign="middle" align="right" />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <button
+                      className="download-btn"
+                      onClick={() => downloadChart('pie-chart', 'gjennomsnitt_skritt_per_team.png')}
+                  >
+                    Last ned som bilde
+                  </button>
+                </div>
+
+                {/* Viser stablet stolpediagram for gjennomsnittlig daglig skritt per person for topp 3 team */}
+                <div className="chart-container" id="stacked-bar-chart">
+                  <h2 className="text-xl mb-2">Gjennomsnittlig daglig skrittinnsats per person for topp 3 team</h2>
+                  <ResponsiveContainer width="100%" height={400} aria-label="Stacked bar chart showing average daily steps per person for top 3 teams">
+                    <BarChart data={data.dailyTeamData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" fontSize={14} />
+                      <YAxis fontSize={14} tickFormatter={formatNumber} />
+                      <Tooltip formatter={(value) => formatNumber(value)} />
+                      <Legend />
+                      {data.top3TeamNames.map((team, index) => (
+                          <Bar key={team} dataKey={team} stackId="a" fill={data.teamColors[index]} name={team} />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <button
+                      className="download-btn"
+                      onClick={() => downloadChart('stacked-bar-chart', 'gjennomsnitt_daglig_skritt_per_person_topp_3_team.png')}
+                  >
+                    Last ned som bilde
+                  </button>
+                </div>
+
+                {/* Viser stolpediagram for topp 5 personer */}
+                <div className="chart-container" id="bar-chart">
+                  <h2 className="text-xl mb-2">Topp 5 deltakere etter totalt antall skritt</h2>
+                  <ResponsiveContainer width="100%" height={400} aria-label="Bar chart showing top 5 participants by total steps">
+                    <BarChart data={data.top5Persons} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" fontSize={14} />
+                      <YAxis yAxisId="left" fontSize={14} tickFormatter={formatNumber} />
+                      <YAxis yAxisId="right" orientation="right" fontSize={14} tickFormatter={formatNumber} />
+                      <Tooltip formatter={(value) => formatNumber(value)} />
+                      <Bar yAxisId="left" dataKey="totalSteps" fill="#0088FE" name="Totalt skritt" />
+                      <Bar yAxisId="right" dataKey="avgSteps" fill="#00C49F" name="Gjennomsnittlig skritt per dag" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <button
+                      className="download-btn"
+                      onClick={() => downloadChart('bar-chart', 'topp_5_personer_skritt.png')}
+                  >
+                    Last ned som bilde
+                  </button>
+                </div>
+
+                {/* Viser tabell som leaderboard */}
+                <div className="table-container">
+                  <h2 className="text-xl mb-2">Leaderboard - Alle deltakere</h2>
+                  <table>
+                    <thead>
+                    <tr>
+                      <th scope="col">Navn</th>
+                      <th scope="col">Team</th>
+                      <th scope="col">Totalt skritt</th>
+                      <th scope="col">Gjennomsnittlig skritt per dag</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {data.allPersons.map((person, index) => (
+                        <tr key={index}>
+                          <td>{person.name}</td>
+                          <td>{person.team}</td>
+                          <td>{formatNumber(person.totalSteps)}</td>
+                          <td>{formatNumber(person.avgSteps)}</td>
+                        </tr>
+                    ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Viser konklusjon */}
+                <div className="mt-6">
+                  <h2 className="text-xl mb-2">Konklusjon</h2>
+                  <p className="text-lg max-w-[75ch]">
+                    Konkurransen viser hvordan teamene i NAVs familieavdeling rangeres basert på gjennomsnittlig skritt per person over perioden ({data.periodInfo.from} til {data.periodInfo.to}, {data.periodInfo.days} dager).
+                    {data.topPerson} leder med flest skritt. Toppteamene viser sterk innsats, men forskjeller indikerer rom for jevnere konkurranse. Økt deltakelse fra mindre aktive team kan løfte resultatene!
+                  </p>
+                </div>
+              </>
           )}
         </div>
-      );
-    };
+    );
+  };
 
-    // Rendrer appen
-    const root = createRoot(document.getElementById('root'));
-    root.render(<App />);
-  </script>
+  // Rendrer appen
+  const root = createRoot(document.getElementById('root'));
+  root.render(<App />);
+</script>
 </body>
 </html>
