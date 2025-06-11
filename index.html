@@ -191,7 +191,7 @@
       // Finner konkurranseperioden
       const dates = Object.values(uniqueEntries).map(entry => entry.date);
       const minDate = new Date(Math.min(...dates));
-      const today = new Date('2025-05-28T20:33:00+02:00'); // Setter dagens dato til 28. mai 2025, 08:33 PM CEST
+      const today = new Date('2025-06-08T20:33:00+02:00'); // Setter dagens dato til 08. juni 2025, 08:33 PM CEST ;)))
       const endDate = today;
       const chosenStartDate = customStartDate ? new Date(customStartDate) : minDate;
       if (chosenStartDate > endDate) {
